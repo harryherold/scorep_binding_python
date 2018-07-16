@@ -16,13 +16,13 @@ scorep_config = [
     "scorep-config",
     "--compiler",
     "--user",
-    "--thread=pthread",
+    "--io=runtime:posix",
     "--mpp=none"]
 scorep_config_mpi = [
     "scorep-config",
     "--compiler",
     "--user",
-    "--thread=pthread",
+    "--io=runtime:posix",
     "--mpp=mpi"]
 
 

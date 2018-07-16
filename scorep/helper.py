@@ -140,6 +140,8 @@ def generate_ld_preload():
         sys.stderr.write("cannot find {}.\n".format(mpi_lib_name))
         return "", ""
 
-    (_, preload, _) = call(["scorep-config", "--preload-libs"])
+    (_, preload, _) = call(["scorep-config", "--io=runtime:posix", "--preload-libs"])
+
     preload += " " + scorep_subsystem_path
+
     return preload, scorep_subsystem_path
