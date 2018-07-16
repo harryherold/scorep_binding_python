@@ -10,7 +10,6 @@ import sys
 import stat
 import platform
 import functools
-import scorep.helper
 
 scorep_config = [
     "scorep-config",
@@ -25,9 +24,38 @@ scorep_config_mpi = [
     "--io=runtime:posix",
     "--mpp=mpi"]
 
+def get_version():
+    version = "{}.{}".format(
+        sys.version_info.major,
+        sys.version_info.minor)
+    return version
+
+def call(arguments):
+    """
+    return a triple with (returncode, stdout, stderr) from the call to subprocess
+    """
+    result = ()
+    if sys.version_info > (3, 5):
+        out = subprocess.run(
+            arguments,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        result = (
+            out.returncode,
+            out.stdout.decode("utf-8"),
+            out.stderr.decode("utf-8"))
+    else:
+        p = subprocess.Popen(
+            arguments,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+        p.wait()
+        result = (p.returncode, stdout.decode("utf-8"), stderr.decode("utf-8"))
+    return result
 
 def get_config(scorep_config):
-    (retrun_code, _, _) = scorep.helper.call(scorep_config + ["--cuda"])
+    (retrun_code, _, _) = call(scorep_config + ["--cuda"])
     if retrun_code == 0:
         scorep_config.append("--cuda")
         print("Cuda is supported, building with cuda")
@@ -35,7 +63,7 @@ def get_config(scorep_config):
         print("Cuda is not supported, building without cuda")
         scorep_config.append("--nocuda")
 
-    (retrun_code, _, _) = scorep.helper.call(scorep_config + ["--opencl"])
+    (retrun_code, _, _) = call(scorep_config + ["--opencl"])
     if retrun_code == 0:
         scorep_config.append("--opencl")
         print("OpenCL is supported, building with OpenCL")
@@ -43,12 +71,12 @@ def get_config(scorep_config):
         print("OpenCl is not supported, building without OpenCL")
         scorep_config.append("--noopencl")
 
-    (_, ldflags, _) = scorep.helper.call(scorep_config + ["--ldflags"])
-    (_, libs, _) = scorep.helper.call(scorep_config + ["--libs"])
-    (_, mgmt_libs, _) = scorep.helper.call(scorep_config + ["--mgmt-libs"])
-    (_, cflags, _) = scorep.helper.call(scorep_config + ["--cflags"])
+    (_, ldflags, _) = call(scorep_config + ["--ldflags"])
+    (_, libs, _) = call(scorep_config + ["--libs"])
+    (_, mgmt_libs, _) = call(scorep_config + ["--mgmt-libs"])
+    (_, cflags, _) = call(scorep_config + ["--cflags"])
 
-    (_, scorep_adapter_init, _) = scorep.helper.call(
+    (_, scorep_adapter_init, _) = call(
         scorep_config + ["--adapter-init"])
 
     libs = " " + libs + " " + mgmt_libs
@@ -77,18 +105,18 @@ def get_config(scorep_config):
 
 
 def get_mpi_config():
-    (_, mpi_version, mpi_version2) = scorep.helper.call(
+    (_, mpi_version, mpi_version2) = call(
         ["mpiexec", "--version"])
     mpi_version = mpi_version + mpi_version2
     if "OpenRTE" in mpi_version:
         print("OpenMPI detected")
-        (_, ldflags, _) = scorep.helper.call(["mpicc", "-showme:link"])
-        (_, compile_flags, _) = scorep.helper.call(
+        (_, ldflags, _) = call(["mpicc", "-showme:link"])
+        (_, compile_flags, _) = call(
             ["mpicc", "-showme:compile"])
     elif ("Intel" in mpi_version) or ("MPICH" in mpi_version):
         print("Intel or MPICH detected")
-        (_, ldflags, _) = scorep.helper.call(["mpicc", "-link_info"])
-        (_, compile_flags, _) = scorep.helper.call(["mpicc", "-compile_info"])
+        (_, ldflags, _) = call(["mpicc", "-link_info"])
+        (_, compile_flags, _) = call(["mpicc", "-compile_info"])
     else:
         print("cannot determine mpi version: \"{}\"".format(mpi_version))
         exit(-1)
@@ -134,26 +162,26 @@ def build_vampir_groups_writer():
 
     scorep_substrate_vampir_groups_writer = None
     if(len(os.listdir("scorep_substrate_vampir_groups_writer/")) == 0):
-        (return_val, _, error) = scorep.helper.call(
+        (return_val, _, error) = call(
             ["git", "submodule", "init"])
         if return_val != 0:
             return return_val, error
 
-    (return_val, _, error) = scorep.helper.call(["git", "submodule", "update"])
+    (return_val, _, error) = call(["git", "submodule", "update"])
     if return_val != 0:
         return return_val, error
 
-    (return_val, _, error) = scorep.helper.call(
+    (return_val, _, error) = call(
         ["cmake", "-Btmp_build", "-Hscorep_substrate_vampir_groups_writer"])
     if return_val != 0:
         return return_val, error
 
-    (return_val, _, error) = scorep.helper.call(["make", "-C", "tmp_build"])
+    (return_val, _, error) = call(["make", "-C", "tmp_build"])
     if return_val != 0:
         return return_val, error
 
     # for local install i.e. pip3 install -e .
-    (return_val, _, error) = scorep.helper.call(
+    (return_val, _, error) = call(
         ["cp", "tmp_build/libscorep_substrate_vampir_groups_writer.so", "."])
     if return_val != 0:
         return return_val, error
@@ -193,7 +221,7 @@ with open("./scorep_init_mpi.c", "w") as f:
 
 # build scorep with mpi for ld_prealod
 
-mpi_lib_name = scorep.helper.gen_mpi_lib_name()
+mpi_lib_name = "libscorep_init_mpi-{}.so".format(get_version())
 
 cc = distutils.ccompiler.new_compiler()
 cc.compile(["./scorep_init_mpi.c"])
@@ -204,7 +232,7 @@ cc.link(
     library_dirs=lib_dir_mpi,
     extra_postargs=linker_flags_mpi)
 
-mpi_link_name = scorep.helper.gen_mpi_link_name()
+mpi_link_name = "scorep_init_mpi-{}".format(get_version())
 
 linker_flags_mpi.append("-l{}".format(mpi_link_name))
 
@@ -212,7 +240,7 @@ libs = [mpi_lib_name]
 
 (ret_val, message) = build_vampir_groups_writer()
 
-print("Download and build vampir gouprs writer")
+print("Download and build vampir groups writer")
 if ret_val != 0:
     print("Error building vampir groups writer:\n{}".format(message))
     print("Continuing without")

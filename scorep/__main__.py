@@ -4,8 +4,6 @@ import importlib
 import getopt
 
 import scorep.trace
-import scorep.helper
-
 
 def _usage(outfile):
     outfile.write("""TODO
@@ -14,52 +12,9 @@ def _usage(outfile):
 
 global_trace = None
 
-cuda_support = None
-opencl_support = None
-
-
 def _err_exit(msg):
     sys.stderr.write("%s: %s\n" % (sys.argv[0], msg))
     sys.exit(1)
-
-
-def set_init_environment(mpi):
-    """
-    Set the inital needed environmet variables, to get everythin up an running.
-    As a few variables interact with LD env vars, the programms needs to be restarted after this.
-    The function set the env var `SCOREP_PYTHON_BINDINGS_INITALISED` to true, once it is done with
-    initalising.
-
-    @param mpi indicates if mpi is used.
-    """
-
-    """
-    look for vampir_groups_writer, which will produce a groups file for vampir.
-    This allows collored traces.
-    """
-    vampir_groups_writer_lib = "libscorep_substrate_vampir_groups_writer.so"
-    vampir_groups_writer = scorep.helper.find_lib(vampir_groups_writer_lib)
-
-    if vampir_groups_writer:
-        scorep.helper.add_to_ld_library_path(
-            os.path.dirname(vampir_groups_writer))
-        if ("SCOREP_SUBSTRATE_PLUGINS" not in os.environ) or (
-                os.environ["SCOREP_SUBSTRATE_PLUGINS"] == ""):
-            os.environ["SCOREP_SUBSTRATE_PLUGINS"] = "vampir_groups_writer"
-        else:
-            os.environ["SCOREP_SUBSTRATE_PLUGINS"] += ",vampir_groups_writer"
-
-    if mpi:
-        if ("LD_PRELOAD" not in os.environ) or (
-                "libscorep" not in os.environ["LD_PRELOAD"]):
-
-            ld_preload, scorep_subsystem = scorep.helper.generate_ld_preload()
-            scorep.helper.add_to_ld_library_path(
-                os.path.dirname(scorep_subsystem))
-
-            os.environ["LD_PRELOAD"] = ld_preload
-
-    os.environ["SCOREP_PYTHON_BINDINGS_INITALISED"] = "true"
 
 
 def main(argv=None):
@@ -92,24 +47,6 @@ def main(argv=None):
 
     if len(prog_argv) == 0:
         _err_exit("missing name of file to run")
-
-    if ("SCOREP_PYTHON_BINDINGS_INITALISED" not in os.environ) or (
-            os.environ["SCOREP_PYTHON_BINDINGS_INITALISED"] != "true"):
-        set_init_environment(mpi)
-
-        """
-        python -m starts the module as skript. i.e. sys.argv will loke like:
-        ['/home/gocht/Dokumente/code/scorep_python/scorep.py', '--mpi', 'mpi_test.py']
-
-        To restart python we need to remove this line, and add python -m scorep ... again
-        """
-        new_args = [sys.executable, "-m", "scorep"]
-        for elem in sys.argv:
-            if "scorep/__main__.py" in elem:
-                continue
-            else:
-                new_args.append(elem)
-        os.execve(sys.executable, new_args, os.environ)
 
     scorep_bindings = None
     if mpi:
