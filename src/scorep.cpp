@@ -8,7 +8,6 @@
 
 namespace scorep
 {
-// SCOREP_User_RegionHandle handle = SCOREP_USER_INVALID_REGION
 
 struct region_handle
 {
@@ -222,19 +221,11 @@ static PyMethodDef ScorePMethods[] = {
 };
 
 #if PY_VERSION_HEX < 0x03000000
-#ifndef USE_MPI
 PyMODINIT_FUNC initscorep_bindings(void)
 {
     (void)Py_InitModule("scorep_bindings", ScorePMethods);
 }
-#else  /*USE_MPI*/
-PyMODINIT_FUNC initscorep_bindings_mpi(void)
-{
-    (void)Py_InitModule("scorep_bindings_mpi", ScorePMethods);
-}
-#endif /*USE_MPI*/
-#else  /*python 3*/
-#ifndef USE_MPI
+#else /* python3 */
 static struct PyModuleDef scorepmodule = { PyModuleDef_HEAD_INIT,
                                            "scorep_bindings", /* name of module */
                                            NULL, /* module documentation, may be NULL */
@@ -246,18 +237,6 @@ PyMODINIT_FUNC PyInit_scorep_bindings(void)
 {
     return PyModule_Create(&scorepmodule);
 }
-#else  /*USE_MPI*/
-static struct PyModuleDef scorepmodule_mpi = { PyModuleDef_HEAD_INIT,
-                                               "scorep_bindings_mpi", /* name of module */
-                                               NULL, /* module documentation, may be NULL */
-                                               -1,   /* size of per-interpreter state of the module,
-                                                        or -1 if the module keeps state in global
-                                                        variables. */
-                                               ScorePMethods };
-PyMODINIT_FUNC PyInit_scorep_bindings_mpi(void)
-{
-    return PyModule_Create(&scorepmodule_mpi);
-}
-#endif /*USE_MPI*/
 #endif /*python 3*/
-}
+
+} /* namespace scorep */

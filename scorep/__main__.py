@@ -5,16 +5,8 @@ import getopt
 
 import scorep.trace
 
-def _usage(outfile):
-    outfile.write("""TODO
-""" % sys.argv[0])
-
 
 global_trace = None
-
-def _err_exit(msg):
-    sys.stderr.write("%s: %s\n" % (sys.argv[0], msg))
-    sys.exit(1)
 
 
 def main(argv=None):
@@ -35,7 +27,6 @@ def main(argv=None):
     for opt in opts:
         key, value = opt
         if key == "--help":
-            _usage(sys.stdout)
             sys.exit(0)
 
         if key == "--version":
@@ -45,14 +36,7 @@ def main(argv=None):
         if key == "--mpi":
             mpi = True
 
-    if len(prog_argv) == 0:
-        _err_exit("missing name of file to run")
-
-    scorep_bindings = None
-    if mpi:
-        scorep_bindings = importlib.import_module("scorep.scorep_bindings_mpi")
-    else:
-        scorep_bindings = importlib.import_module("scorep.scorep_bindings")
+    scorep_bindings = importlib.import_module("scorep.scorep_bindings")
 
     # everything is ready
     sys.argv = prog_argv
@@ -72,7 +56,7 @@ def main(argv=None):
         }
         global_trace.runctx(code, globs, globs)
     except OSError as err:
-        _err_exit("Cannot run file %r because: %s" % (sys.argv[0], err))
+        print("Cannot run file {} because: {}".format(sys.argv[0], err))
     except SystemExit:
         pass
 
