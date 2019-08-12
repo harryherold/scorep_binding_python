@@ -12,37 +12,12 @@ global_trace = None
 def main(argv=None):
     if argv is None:
         argv = sys.argv
-    try:
-        opts, prog_argv = getopt.getopt(argv[1:], "v",
-                                        ["help", "version", "mpi"])
 
-    except getopt.error as msg:
-        sys.stderr.write("%s: %s\n" % (sys.argv[0], msg))
-        sys.stderr.write("Try `%s --help' for more information\n"
-                         % sys.argv[0])
-        sys.exit(1)
-
-    mpi = False
-
-    for opt in opts:
-        key, value = opt
-        if key == "--help":
-            sys.exit(0)
-
-        if key == "--version":
-            sys.stdout.write("scorep_trace 1.0\n")
-            sys.exit(0)
-
-        if key == "--mpi":
-            mpi = True
-
-    scorep_bindings = importlib.import_module("scorep.scorep_bindings")
-
-    # everything is ready
-    sys.argv = prog_argv
-    progname = prog_argv[0]
+    progname = argv[1]
+    sys.argv = argv[1:]
     sys.path[0] = os.path.split(progname)[0]
 
+    scorep_bindings = importlib.import_module("scorep.scorep_bindings")
     global_trace = scorep.trace.ScorepTrace(scorep_bindings, True)
     try:
         with open(progname) as fp:
