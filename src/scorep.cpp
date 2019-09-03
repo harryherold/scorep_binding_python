@@ -72,6 +72,7 @@ extern "C"
 {
 
     extern const char* SCOREP_GetExperimentDirName(void);
+    constexpr unsigned long region_buffer_max = 4096;
 
     static PyObject* enable_recording(PyObject* self, PyObject* args)
     {
@@ -88,16 +89,6 @@ extern "C"
         return Py_None;
     }
 
-    static inline char* concat(const char* module, const char* function)
-    {
-#define BUFFER_MAX 4096
-        static char buffer[BUFFER_MAX];
-        assert((strlen(module) + strlen(function)) < BUFFER_MAX &&
-               "Resulting region is too long\n");
-        sprintf(buffer, "%s:%s", module, function);
-        return buffer;
-    }
-
     static PyObject* region_begin(PyObject* self, PyObject* args)
     {
         const char* module;
@@ -110,8 +101,11 @@ extern "C"
 
         if (scorep_python::filter_modules.find(module) == scorep_python::filter_modules.end())
         {
-            char* region = concat(module, region_name);
-            scorep::region_begin(region, file_name, line_number);
+            char region_buffer[region_buffer_max];
+            assert((strlen(module) + strlen(region_name)) < region_buffer_max &&
+                   "Resulting region is too long\n");
+            sprintf(region_buffer, "%s:%s", module, region_name);
+            scorep::region_begin(region_buffer, file_name, line_number);
         }
 
         Py_INCREF(Py_None);
@@ -128,8 +122,11 @@ extern "C"
 
         if (scorep_python::filter_modules.find(module) == scorep_python::filter_modules.end())
         {
-            char* region = concat(module, region_name);
-            scorep::region_end(region);
+            char region_buffer[region_buffer_max];
+            assert((strlen(module) + strlen(region_name)) < region_buffer_max &&
+                   "Resulting region is too long\n");
+            sprintf(region_buffer, "%s:%s", module, region_name);
+            scorep::region_end(region_buffer);
         }
 
         Py_INCREF(Py_None);
