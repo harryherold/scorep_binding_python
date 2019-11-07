@@ -1,6 +1,8 @@
 # Score-P Python
 This repository provides a module that allows tracing of python scripts using [Score-P](http://www.vi-hps.org/projects/score-p/).
 
+This software was developed as part of the EC H2020 funded project NEXTGenIO (Project ID: 671951) http://www.nextgenio.eu.
+
 # Requirements
 * CMAKE
 * Score-P
